@@ -1,21 +1,22 @@
 """API to ActualBudget."""
 
+from dataclasses import dataclass
+import datetime
 from decimal import Decimal
 import logging
-from dataclasses import dataclass
-from typing import Dict, List
-from actual import Actual
-from actual.exceptions import (
-    UnknownFileId,
-    InvalidFile,
-    InvalidZipFile,
-    AuthorizationError,
-)
-from actual.queries import get_accounts, get_account, get_budgets, get_category
-from requests.exceptions import ConnectionError, SSLError
-import datetime
 import threading
 
+from actual import Actual
+from actual.exceptions import (
+    AuthorizationError,
+    InvalidFile,
+    InvalidZipFile,
+    UnknownFileId,
+)
+from actual.queries import get_account, get_accounts, get_budgets, get_category
+from requests.exceptions import ConnectionError, SSLError
+
+from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
@@ -31,8 +32,10 @@ class BudgetAmount:
 
 @dataclass
 class Budget:
-    name: str
-    amounts: List[BudgetAmount]
+    id: str
+    group: str | None
+    category: str
+    amounts: list[BudgetAmount]
     balance: Decimal
 
 
@@ -45,7 +48,9 @@ class Account:
 class ActualBudget:
     """Interfaces to ActualBudget"""
 
-    def __init__(self, hass, endpoint, password, file, cert, encrypt_password):
+    def __init__(
+        self, hass: HomeAssistant, endpoint, password, file, cert, encrypt_password
+    ):
         self.hass = hass
         self.endpoint = endpoint
         self.password = password
@@ -87,7 +92,7 @@ class ActualBudget:
                 self.actual = self.create_session()
                 self.sessionStartedAt = datetime.datetime.now()
 
-        return self.actual.session  # Return session after lock is released
+        return self.actual  # Return session after lock is released
 
     def create_session(self):
         actual = Actual(
@@ -104,13 +109,21 @@ class ActualBudget:
             raise Exception("Session not validated")
         return actual
 
-    async def get_accounts(self) -> List[Account]:
+    async def get_file_id(self):
+        """Get file ID."""
+        return await self.hass.async_add_executor_job(self._get_file_id_sync)
+
+    def _get_file_id_sync(self) -> str:
+        actual = self.get_session()
+        return actual.get_metadata().get("id")
+
+    async def get_accounts(self) -> list[Account]:
         """Get accounts."""
         return await self.hass.async_add_executor_job(self.get_accounts_sync)
 
-    def get_accounts_sync(self) -> List[Account]:
-        session = self.get_session()
-        accounts = get_accounts(session)
+    def get_accounts_sync(self) -> list[Account]:
+        actual = self.get_session()
+        accounts = get_accounts(actual.session)
         return [Account(name=a.name, balance=a.balance) for a in accounts]
 
     async def get_account(self, account_name) -> Account:
@@ -123,36 +136,42 @@ class ActualBudget:
         self,
         account_name,
     ) -> Account:
-        session = self.get_session()
-        account = get_account(session, account_name)
+        actual = self.get_session()
+        account = get_account(actual.session, account_name)
         if not account:
             raise Exception(f"Account {account_name} not found")
         return Account(name=account.name, balance=account.balance)
 
-    async def get_budgets(self) -> List[Budget]:
+    async def get_budgets(self) -> list[Budget]:
         """Get budgets."""
-        return await self.hass.async_add_executor_job(self.get_budgets_sync)
+        return await self.hass.async_add_executor_job(self._get_budgets_sync)
 
-    def get_budgets_sync(self) -> List[Budget]:
-        session = self.get_session()
-        budgets_raw = get_budgets(session)
-        budgets: Dict[str, Budget] = {}
+    def _get_budgets_sync(self) -> list[Budget]:
+        actual = self.get_session()
+        budgets_raw = get_budgets(actual.session)
+        budgets: dict[str, Budget] = {}
         for budget_raw in budgets_raw:
-            if not budget_raw.category:
+            if not hasattr(budget_raw.category, "id"):
                 continue
-            category = str(budget_raw.category.name)
+            category = str(budget_raw.category.id)
+            group = budget_raw.category.group.name
+
             amount = None if not budget_raw.amount else (float(budget_raw.amount) / 100)
             month = str(budget_raw.month)
             if category not in budgets:
                 budgets[category] = Budget(
-                    name=category, amounts=[], balance=Decimal(0)
+                    id=category,
+                    group=group,
+                    category=str(budget_raw.category.name),
+                    amounts=[],
+                    balance=Decimal(0),
                 )
             budgets[category].amounts.append(BudgetAmount(month=month, amount=amount))
         for category in budgets:
             budgets[category].amounts = sorted(
                 budgets[category].amounts, key=lambda x: x.month
             )
-            category_data = get_category(session, category)
+            category_data = get_category(actual.session, category)
             budgets[category].balance = (
                 category_data.balance if category_data else Decimal(0)
             )
@@ -168,8 +187,8 @@ class ActualBudget:
         self,
         budget_name,
     ) -> Budget:
-        session = self.get_session()
-        budgets_raw = get_budgets(session, None, budget_name)
+        actual = self.get_session()
+        budgets_raw = get_budgets(actual.session, None, budget_name)
         if not budgets_raw or not budgets_raw[0]:
             raise Exception(f"budget {budget_name} not found")
         budget: Budget = Budget(name=budget_name, amounts=[], balance=Decimal(0))
@@ -178,7 +197,7 @@ class ActualBudget:
             month = str(budget_raw.month)
             budget.amounts.append(BudgetAmount(month=month, amount=amount))
         budget.amounts = sorted(budget.amounts, key=lambda x: x.month)
-        category_data = get_category(session, budget_name)
+        category_data = get_category(actual, budget_name)
         budget.balance = category_data.balance if category_data else Decimal(0)
         return budget
 
@@ -188,8 +207,8 @@ class ActualBudget:
     def test_connection_sync(self):
         try:
             actualSession = self.get_session()
-            if not actualSession:
-                return "failed_file"
+
+            return actualSession if actualSession else "failed_session"
         except SSLError:
             return "failed_ssl"
         except ConnectionError:
@@ -202,4 +221,3 @@ class ActualBudget:
             return "failed_file"
         except InvalidZipFile:
             return "failed_file"
-        return None

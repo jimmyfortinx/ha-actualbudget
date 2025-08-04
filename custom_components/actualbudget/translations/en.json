@@ -1,25 +1,19 @@
 {
-  "title": "actualbudget",
+  "title": "Actual",
   "config": {
     "step": {
       "user": {
         "title": "Login",
-        "description": "Login to actualbudget",
         "data": {
-          "endpoint": "actualbudget endpoint",
-          "password": "password",
-          "encrypt_password": "encrypt password",
-          "file": "file id",
-          "cert": "certificate",
-          "unit": "unit"
+          "endpoint": "Endpoint",
+          "password": "Password",
+          "encrypt_password": "Encrypt password",
+          "file": "File",
+          "cert": "Certificate",
+          "currency": "Currency"
         },
         "data_description": {
-          "endpoint": "The endpoint of the actualbudget server",
-          "password": "The password of the actualbudget server",
-          "encrypt_password": "The password to encrypt the actualbudget file",
-          "file": "The file id of the actualbudget server",
-          "cert": "The certificate of the actualbudget server, write 'SKIP' to skip certificate validation",
-          "unit": "The currency of the actualbudget server"
+          "file": "The name or id of the file."
         }
       }
     },

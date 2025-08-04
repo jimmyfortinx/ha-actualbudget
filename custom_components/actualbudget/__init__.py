@@ -1,6 +1,7 @@
 """The actualbudget integration."""
 
 from __future__ import annotations
+
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -16,13 +17,13 @@ _LOGGER.setLevel(logging.DEBUG)
 PLATFORMS: list[str] = ["sensor"]
 
 
-async def async_setup(hass: HomeAssistant, config: ConfigType):
-    """Start configuring the API."""
-    _LOGGER.debug("Start 'async_setup'...")
+# async def async_setup(hass: HomeAssistant, config: ConfigType):
+#     """Start configuring the API."""
+#     _LOGGER.debug("Start 'async_setup'...")
 
-    hass.data.setdefault(DOMAIN, {})
+#     hass.data.setdefault(DOMAIN, {})
 
-    return True
+#     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):

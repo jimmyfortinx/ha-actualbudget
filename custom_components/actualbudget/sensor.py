@@ -2,36 +2,27 @@
 
 from __future__ import annotations
 
+import datetime
 from decimal import Decimal
 import logging
-
-from typing import List, Dict, Union
 from urllib.parse import urlparse
-import datetime
 
-from homeassistant.components.sensor import (
-    SensorEntity,
-)
-from homeassistant.components.sensor.const import (
-    SensorDeviceClass,
-    SensorStateClass,
-)
+from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor.const import SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (
-    CONFIG_PREFIX,
-    DEFAULT_ICON,
-    DOMAIN,
-    CONFIG_ENDPOINT,
-    CONFIG_PASSWORD,
-    CONFIG_FILE,
-    CONFIG_UNIT,
-    CONFIG_CERT,
-    CONFIG_ENCRYPT_PASSWORD,
-)
 from .actualbudget import ActualBudget, BudgetAmount
+from .const import (
+    CONFIG_CERT,
+    CONFIG_CURRENCY,
+    CONFIG_ENCRYPT_PASSWORD,
+    CONFIG_ENDPOINT,
+    CONFIG_FILE,
+    CONFIG_PASSWORD,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
@@ -52,33 +43,31 @@ async def async_setup_entry(
     password = config[CONFIG_PASSWORD]
     file = config[CONFIG_FILE]
     cert = config.get(CONFIG_CERT)
-    unit = config.get(CONFIG_UNIT, "€")
-    prefix = config.get(CONFIG_PREFIX)
+    currency = config.get(CONFIG_CURRENCY)
 
     if cert == "SKIP":
         cert = False
     encrypt_password = config.get(CONFIG_ENCRYPT_PASSWORD)
     api = ActualBudget(hass, endpoint, password, file, cert, encrypt_password)
 
-    domain = urlparse(endpoint).hostname
-    port = urlparse(endpoint).port
-    unique_source_id = f"{domain}_{port}_{file}"
+    fileId = await api.get_file_id()
+    netloc = urlparse(endpoint).netloc
+    unique_source_id = f"{netloc}_{fileId}"
 
     accounts = await api.get_accounts()
     lastUpdate = datetime.datetime.now()
     accounts = [
-        actualbudgetAccountSensor(
+        ActualAccountSensor(
             api,
             endpoint,
             password,
             file,
-            unit,
+            currency,
             cert,
             encrypt_password,
             account.name,
             account.balance,
             unique_source_id,
-            prefix,
             lastUpdate,
         )
         for account in accounts
@@ -86,21 +75,21 @@ async def async_setup_entry(
     async_add_entities(accounts, update_before_add=True)
 
     budgets = await api.get_budgets()
+
     lastUpdate = datetime.datetime.now()
     budgets = [
-        actualbudgetBudgetSensor(
+        ActualBudgetSensor(
             api,
             endpoint,
             password,
             file,
-            unit,
+            currency,
             cert,
             encrypt_password,
-            budget.name,
+            f"{budget.group} - {budget.category}" if budget.group else budget.category,
             budget.amounts,
             budget.balance,
             unique_source_id,
-            prefix,
             lastUpdate,
         )
         for budget in budgets
@@ -108,7 +97,7 @@ async def async_setup_entry(
     async_add_entities(budgets, update_before_add=True)
 
 
-class actualbudgetAccountSensor(SensorEntity):
+class ActualAccountSensor(SensorEntity):
     """Representation of a actualbudget Sensor."""
 
     def __init__(
@@ -117,13 +106,12 @@ class actualbudgetAccountSensor(SensorEntity):
         endpoint: str,
         password: str,
         file: str,
-        unit: str,
+        currency: str,
         cert: str,
         encrypt_password: str | None,
         name: str,
         balance: float,
         unique_source_id: str,
-        prefix: str,
         balance_last_updated: datetime.datetime,
     ):
         super().__init__()
@@ -136,10 +124,10 @@ class actualbudgetAccountSensor(SensorEntity):
         self._file = file
         self._cert = cert
         self._encrypt_password = encrypt_password
-        self._prefix = prefix
+        self._attr_unique_id = f"{DOMAIN}-{self.unique_id}-account-{name}".lower()
 
-        self._icon = DEFAULT_ICON
-        self._unit_of_measurement = unit
+        self._icon = "mdi:bank"
+        self._unit_of_measurement = currency
         self._device_class = SensorDeviceClass.MONETARY
         self._state_class = SensorStateClass.MEASUREMENT
         self._state = None
@@ -149,20 +137,12 @@ class actualbudgetAccountSensor(SensorEntity):
     @property
     def name(self) -> str:
         """Return the name of the entity."""
-        if self._prefix:
-            return f"{self._prefix}_{self._name}"
-        else:
-            return self._name
+        return self._name
 
     @property
     def unique_id(self) -> str:
         """Return the unique ID of the sensor."""
-        if self._prefix:
-            return (
-                f"{DOMAIN}-{self._unique_source_id}-{self._prefix}-{self._name}".lower()
-            )
-        else:
-            return f"{DOMAIN}-{self._unique_source_id}-{self._name}".lower()
+        return f"{DOMAIN}-{self._unique_source_id}-{self._name}".lower()
 
     @property
     def available(self) -> bool:
@@ -212,7 +192,7 @@ class actualbudgetAccountSensor(SensorEntity):
             )
 
 
-class actualbudgetBudgetSensor(SensorEntity):
+class ActualBudgetSensor(SensorEntity):
     """Representation of a actualbudget Sensor."""
 
     def __init__(
@@ -221,14 +201,13 @@ class actualbudgetBudgetSensor(SensorEntity):
         endpoint: str,
         password: str,
         file: str,
-        unit: str,
+        currency: str,
         cert: str,
         encrypt_password: str | None,
         name: str,
-        amounts: List[BudgetAmount],
+        amounts: list[BudgetAmount],
         balance: float,
         unique_source_id: str,
-        prefix: str,
         balance_last_updated: datetime.datetime,
     ):
         super().__init__()
@@ -242,10 +221,9 @@ class actualbudgetBudgetSensor(SensorEntity):
         self._file = file
         self._cert = cert
         self._encrypt_password = encrypt_password
-        self._prefix = prefix
 
-        self._icon = DEFAULT_ICON
-        self._unit_of_measurement = unit
+        self._icon = "mdi:wallet"
+        self._unit_of_measurement = currency
         self._device_class = SensorDeviceClass.MONETARY
         self._state_class = SensorStateClass.MEASUREMENT
         self._available = True
@@ -254,18 +232,12 @@ class actualbudgetBudgetSensor(SensorEntity):
     @property
     def name(self) -> str:
         """Return the name of the entity."""
-        budgetName = f"budget_{self._name}"
-        if self._prefix:
-            return f"{self._prefix}_{budgetName}"
-        return budgetName
+        return self._name
 
     @property
     def unique_id(self) -> str:
         """Return the unique ID of the sensor."""
-        if self._prefix:
-            return f"{DOMAIN}-{self._unique_source_id}-{self._prefix}-budget-{self._name}".lower()
-        else:
-            return f"{DOMAIN}-{self._unique_source_id}-budget-{self._name}".lower()
+        return f"{DOMAIN}-{self._unique_source_id}-budget-{self._name}".lower()
 
     @property
     def available(self) -> bool:
@@ -289,19 +261,26 @@ class actualbudgetBudgetSensor(SensorEntity):
     def icon(self):
         return self._icon
 
-
     @property
     def state(self) -> float | None:
         total = 0
         for amount in self._amounts:
-            if datetime.datetime.strptime(amount.month, '%Y%m') <= datetime.datetime.now():
+            if (
+                datetime.datetime.strptime(amount.month, "%Y%m")
+                <= datetime.datetime.now()
+            ):
                 total += amount.amount if amount.amount else 0
         return round(self._balance + Decimal(total), 2)
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Union[str, float]]:
+    def extra_state_attributes(self) -> dict[str, str | float]:
         extra_state_attributes = {}
-        amounts = [amount for amount in self._amounts if datetime.datetime.strptime(amount.month, '%Y%m') <= datetime.datetime.now()]
+        amounts = [
+            amount
+            for amount in self._amounts
+            if datetime.datetime.strptime(amount.month, "%Y%m")
+            <= datetime.datetime.now()
+        ]
         current_month = amounts[-1].month
         if current_month:
             extra_state_attributes["current_month"] = current_month
@@ -317,12 +296,12 @@ class actualbudgetBudgetSensor(SensorEntity):
         return extra_state_attributes
 
     async def async_update(self) -> None:
+        """Fetch new state data for the sensor."""
         if (
             self._balance_last_updated
             and datetime.datetime.now() - self._balance_last_updated < MINIMUM_INTERVAL
         ):
             return
-        """Fetch new state data for the sensor."""
         try:
             api = self._api
             budget = await api.get_budget(self._name)

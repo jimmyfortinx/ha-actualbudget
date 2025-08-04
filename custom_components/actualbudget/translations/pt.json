@@ -1,25 +1,19 @@
 {
-  "title": "actualbudget",
+  "title": "Atual",
   "config": {
     "step": {
       "user": {
         "title": "Login",
-        "description": "Entrar com suas credenciais do actualbudget",
         "data": {
-          "endpoint": "endpoint do actualbudget",
-          "password": "palavra-passe",
-          "encrypt_password": "palavra-passe de encriptação",
-          "file": "id do ficheiro",
-          "cert": "certificado",
-          "unit": "moeda"
+          "endpoint": "Endpoint",
+          "password": "Palavra-passe",
+          "encrypt_password": "Palavra-passe de encriptação",
+          "file": "Ficheiro",
+          "cert": "Certificado",
+          "currency": "Moeda"
         },
         "data_description": {
-          "endpoint": "O endpoint do servidor actualbudget",
-          "password": "A palavra-passe do servidor actualbudget",
-          "encrypt_password": "A palavra-passe para encriptar o ficheiro actualbudget",
-          "file": "O id do ficheiro do servidor actualbudget",
-          "cert": "O certificado do servidor actualbudget, escreva 'SKIP' para ignorar a validação do certificado",
-          "unit": "A moeda do servidor/ficheiro actualbudget"
+          "file": "O nome ou id do arquivo."
         }
       }
     },

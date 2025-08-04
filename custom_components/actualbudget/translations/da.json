@@ -1,25 +1,19 @@
 {
-  "title": "actualbudget",
+  "title": "Aktuel",
   "config": {
     "step": {
       "user": {
         "title": "Login",
-        "description": "Login til actualbudget",
         "data": {
-          "endpoint": "actualbudget adresse",
-          "password": "password",
-          "encrypt_password": "krypteringspassword",
-          "file": "fil-id",
-          "cert": "certifikat",
-          "unit": "Enhed"
+          "endpoint": "Endpoint",
+          "password": "Password",
+          "encrypt_password": "Krypteringspassword",
+          "file": "Fil",
+          "cert": "Certifikat",
+          "currency": "Valuta"
         },
         "data_description": {
-          "endpoint": "Adressen for actualbudget serveren",
-          "password": "Password til actualbudget serveren",
-          "encrypt_password": "Password til kryptering af actualbudget filen",
-          "file": "Fil-id for actualbudget serveren",
-          "cert": "Certifikat til actualbudget serveren. Brug 'SKIP' for at springe certifikatvalidering over",
-          "unit": "Møntfod for actualbudget serveren"
+          "file": "Navnet eller id på filen."
         }
       }
     },
