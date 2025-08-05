@@ -26,5 +26,42 @@
     "abort": {
       "already_configured": "Device is already configured"
     }
+  },
+  "services": {
+    "get_transactions": {
+      "name": "Get Transactions",
+      "description": "Retrieve transactions from Actual.",
+      "fields": {
+        "entry": {
+          "name": "File",
+          "description": "The file of the budget to retreive transactions from."
+        },
+        "account": {
+          "name": "Account",
+          "description": "The name or id of the account to filter by.",
+          "example": "My Account Name"
+        },
+        "category": {
+          "name": "Category",
+          "description": "The name or id of the category to filter by.",
+          "example": "My Category Name"
+        },
+        "start_date": {
+          "name": "Start date",
+          "description": "The start date to filter by.",
+          "example": "2025-05-01"
+        },
+        "end_date": {
+          "name": "End date",
+          "description": "The end date to filter by.",
+          "example": "2025-05-20"
+        },
+        "is_parent": {
+          "name": "Parent",
+          "description": "Filter transactions that are parents or not. Parent transactions are either single transactions or the main transaction with children.",
+          "example": "true"
+        }
+      }
+    }
   }
 }

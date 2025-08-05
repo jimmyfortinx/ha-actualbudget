@@ -16,6 +16,14 @@ from actual.exceptions import (
 from actual.queries import get_account, get_accounts, get_budgets, get_category
 from requests.exceptions import ConnectionError, SSLError
 
+from config.custom_components.actualbudget.const import (
+    CONFIG_CERT,
+    CONFIG_ENCRYPT_PASSWORD,
+    CONFIG_ENDPOINT,
+    CONFIG_FILE,
+    CONFIG_PASSWORD,
+)
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,6 +49,7 @@ class Budget:
 
 @dataclass
 class Account:
+    id: str | None
     name: str | None
     balance: Decimal
 
@@ -124,7 +133,7 @@ class ActualBudget:
     def get_accounts_sync(self) -> list[Account]:
         actual = self.get_session()
         accounts = get_accounts(actual.session)
-        return [Account(name=a.name, balance=a.balance) for a in accounts]
+        return [Account(id=a.id, name=a.name, balance=a.balance) for a in accounts]
 
     async def get_account(self, account_name) -> Account:
         return await self.hass.async_add_executor_job(
@@ -140,7 +149,7 @@ class ActualBudget:
         account = get_account(actual.session, account_name)
         if not account:
             raise Exception(f"Account {account_name} not found")
-        return Account(name=account.name, balance=account.balance)
+        return Account(id=account.id, name=account.name, balance=account.balance)
 
     async def get_budgets(self) -> list[Budget]:
         """Get budgets."""
@@ -221,3 +230,17 @@ class ActualBudget:
             return "failed_file"
         except InvalidZipFile:
             return "failed_file"
+
+
+def from_config_entry(hass: HomeAssistant, entry: ConfigEntry):
+    """Create an instance of ActualBudget from a config entry."""
+    config = entry.data
+    endpoint = config[CONFIG_ENDPOINT]
+    password = config[CONFIG_PASSWORD]
+    file = config[CONFIG_FILE]
+    cert = config.get(CONFIG_CERT)
+
+    if cert == "SKIP":
+        cert = False
+    encrypt_password = config.get(CONFIG_ENCRYPT_PASSWORD)
+    return ActualBudget(hass, endpoint, password, file, cert, encrypt_password)

@@ -1,0 +1,27 @@
+get_transactions:
+  fields:
+    entry:
+      required: true
+      selector:
+        config_entry:
+          integration: actualbudget
+    account:
+      required: false
+      selector:
+        text:
+    category:
+      required: false
+      selector:
+        text:
+    start_date:
+      required: false
+      selector:
+        date:
+    end_date:
+      required: false
+      selector:
+        date:
+    is_parent:
+      required: true
+      selector:
+        boolean:

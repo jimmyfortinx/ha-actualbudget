@@ -65,6 +65,7 @@ async def async_setup_entry(
             currency,
             cert,
             encrypt_password,
+            account.id,
             account.name,
             account.balance,
             unique_source_id,
@@ -109,6 +110,7 @@ class ActualAccountSensor(SensorEntity):
         currency: str,
         cert: str,
         encrypt_password: str | None,
+        id: str,
         name: str,
         balance: float,
         unique_source_id: str,
@@ -116,6 +118,7 @@ class ActualAccountSensor(SensorEntity):
     ):
         super().__init__()
         self._api = api
+        self._id = id
         self._name = name
         self._balance = balance
         self._unique_source_id = unique_source_id
@@ -170,13 +173,21 @@ class ActualAccountSensor(SensorEntity):
     def icon(self):
         return self._icon
 
+    @property
+    def extra_state_attributes(self) -> dict[str, str | float]:
+        extra_state_attributes = {}
+
+        extra_state_attributes["id"] = self._id
+
+        return extra_state_attributes
+
     async def async_update(self) -> None:
+        """Fetch new state data for the sensor."""
         if (
             self._balance_last_updated
             and datetime.datetime.now() - self._balance_last_updated < MINIMUM_INTERVAL
         ):
             return
-        """Fetch new state data for the sensor."""
         try:
             api = self._api
             account = await api.get_account(self._name)

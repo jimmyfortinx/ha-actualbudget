@@ -1,0 +1,7 @@
+{
+  "services": {
+    "get_transactions": {
+      "service": "mdi:list-box"
+    }
+  }
+}
