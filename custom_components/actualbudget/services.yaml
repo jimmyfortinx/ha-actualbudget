@@ -25,3 +25,53 @@ get_transactions:
       required: true
       selector:
         boolean:
+
+commit:
+  fields:
+    entry:
+      required: true
+      selector:
+        config_entry:
+          integration: actualbudget
+
+create_splits:
+  fields:
+    entry:
+      required: true
+      selector:
+        config_entry:
+          integration: actualbudget
+    transaction:
+      required: true
+      selector:
+        text:
+    splits:
+      required: true
+      selector:
+        object:
+          label_field: category
+          description_field: amount
+          multiple: true
+          translation_key: add_split
+          fields:
+            category:
+              required: false
+              selector:
+                text:
+            amount:
+              required: true
+              selector:
+                number:
+                  mode: box
+
+get_accounts:
+  fields:
+    entry:
+      required: true
+      selector:
+        config_entry:
+          integration: actualbudget
+    account:
+      required: false
+      selector:
+        text:

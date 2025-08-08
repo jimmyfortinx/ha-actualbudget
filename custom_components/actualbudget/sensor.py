@@ -51,6 +51,7 @@ async def async_setup_entry(
     api = ActualBudget(hass, endpoint, password, file, cert, encrypt_password)
 
     fileId = await api.get_file_id()
+
     netloc = urlparse(endpoint).netloc
     unique_source_id = f"{netloc}_{fileId}"
 

@@ -165,7 +165,7 @@ class ActualBudget:
             category = str(budget_raw.category.id)
             group = budget_raw.category.group.name
 
-            amount = None if not budget_raw.amount else (float(budget_raw.amount) / 100)
+            amount = None if not budget_raw.amount else float(budget_raw.get_amount())
             month = str(budget_raw.month)
             if category not in budgets:
                 budgets[category] = Budget(
@@ -202,7 +202,7 @@ class ActualBudget:
             raise Exception(f"budget {budget_name} not found")
         budget: Budget = Budget(name=budget_name, amounts=[], balance=Decimal(0))
         for budget_raw in budgets_raw:
-            amount = None if not budget_raw.amount else (float(budget_raw.amount) / 100)
+            amount = None if not budget_raw.amount else float(budget_raw.get_amount())
             month = str(budget_raw.month)
             budget.amounts.append(BudgetAmount(month=month, amount=amount))
         budget.amounts = sorted(budget.amounts, key=lambda x: x.month)

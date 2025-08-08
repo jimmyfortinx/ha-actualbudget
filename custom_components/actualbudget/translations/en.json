@@ -27,6 +27,14 @@
       "already_configured": "Device is already configured"
     }
   },
+  "selector": {
+    "add_split": {
+      "fields": {
+        "category": "Category",
+        "amount": "Amount (in cents)"
+      }
+    }
+  },
   "services": {
     "get_transactions": {
       "name": "Get Transactions",
@@ -60,6 +68,39 @@
           "name": "Parent",
           "description": "Filter transactions that are parents or not. Parent transactions are either single transactions or the main transaction with children.",
           "example": "true"
+        }
+      }
+    },
+    "create_splits": {
+      "name": "Create splits",
+      "description": "Create split transactions under a transaction in Actual.",
+      "fields": {
+        "entry": {
+          "name": "File",
+          "description": "The file of the budget to create the split transactions."
+        },
+        "transaction": {
+          "name": "Transaction id",
+          "description": "The transaction id to attach the transactions to."
+        },
+        "splits": {
+          "name": "Splits",
+          "description": "A list of transactions to create under the specified transaction."
+        }
+      }
+    },
+    "get_accounts": {
+      "name": "Get accounts",
+      "description": "Retrieve accounts from Actual.",
+      "fields": {
+        "entry": {
+          "name": "File",
+          "description": "The file of the budget to retreive categories from."
+        },
+        "account": {
+          "name": "Account",
+          "description": "The name or id of the account to filter by.",
+          "example": "My Account Name"
         }
       }
     }
