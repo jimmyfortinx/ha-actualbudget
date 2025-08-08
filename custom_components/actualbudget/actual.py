@@ -4,14 +4,15 @@ from actual import Actual, Session
 from actual.database import Transactions
 from actual.queries import _transactions_base_query
 
-from config.custom_components.actualbudget.const import (
+from homeassistant.config_entries import ConfigEntry
+
+from .const import (
     CONFIG_CERT,
     CONFIG_ENCRYPT_PASSWORD,
     CONFIG_ENDPOINT,
     CONFIG_FILE,
     CONFIG_PASSWORD,
 )
-from homeassistant.config_entries import ConfigEntry
 
 
 def create_from_entry_config(entry: ConfigEntry):
