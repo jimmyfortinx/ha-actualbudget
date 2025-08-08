@@ -16,15 +16,16 @@ from actual.exceptions import (
 from actual.queries import get_account, get_accounts, get_budgets, get_category
 from requests.exceptions import ConnectionError, SSLError
 
-from config.custom_components.actualbudget.const import (
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+
+from .const import (
     CONFIG_CERT,
     CONFIG_ENCRYPT_PASSWORD,
     CONFIG_ENDPOINT,
     CONFIG_FILE,
     CONFIG_PASSWORD,
 )
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
