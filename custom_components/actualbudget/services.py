@@ -121,6 +121,7 @@ async def handle_create_splits(call: ServiceCall) -> ServiceResponse:
                     actual.session, transaction=parent, amount=0
                 )
                 split_transaction.amount = split_data["amount"]
+                split_transaction.cleared = parent.cleared
 
                 # If category is provided, set it; otherwise use parent's category
                 if split_data.get("category"):
@@ -164,6 +165,7 @@ async def handle_create_splits(call: ServiceCall) -> ServiceResponse:
 
             # Mark parent as having splits and clear its category
             parent.is_parent = 1
+            parent.category_id = None
 
             actual.commit()
 
