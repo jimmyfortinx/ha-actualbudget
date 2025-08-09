@@ -30,6 +30,8 @@
   "selector": {
     "add_split": {
       "fields": {
+        "transfer": "Transfer",
+        "payee": "Payee",
         "category": "Category",
         "amount": "Amount (in cents)"
       }

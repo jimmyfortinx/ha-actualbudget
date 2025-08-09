@@ -5,7 +5,15 @@ from __future__ import annotations
 from datetime import datetime
 import logging
 
-from actual.queries import create_split, get_accounts, get_category, get_transactions
+from actual.queries import (
+    create_split,
+    create_transaction_from_ids,
+    get_account,
+    get_accounts,
+    get_category,
+    get_payee,
+    get_transactions,
+)
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
@@ -64,6 +72,7 @@ async def handle_get_transactions(call: ServiceCall) -> ServiceResponse:
                         else "",
                         "date": transaction.date,
                         "amount": transaction.amount,
+                        "parent_id": transaction.parent_id,
                     }
                     for transaction in transactions
                 ]
@@ -80,6 +89,8 @@ CREATE_SPLIT_SCHEMA = vol.Schema(
             [
                 vol.Schema(
                     {
+                        vol.Optional("transfer"): str,
+                        vol.Optional("payee"): str,
                         vol.Optional("category"): str,
                         vol.Required("amount"): int,
                     }
@@ -117,11 +128,42 @@ async def handle_create_splits(call: ServiceCall) -> ServiceResponse:
                     if category:
                         split_transaction.category_id = category.id
                 else:
-                    split_transaction.category_id = parent.category_id
+                    split_transaction.category_id = parent.category.id
+
+                if split_data.get("payee"):
+                    payee = get_payee(actual.session, split_data["payee"])
+                    if payee:
+                        split_transaction.payee_id = payee.id
+
+                if split_data.get("transfer"):
+                    source = parent.account
+                    dest = get_account(actual.session, split_data.get("transfer"))
+                    source_transaction = split_transaction
+                    dest_transaction = create_transaction_from_ids(
+                        actual.session,
+                        parent.get_date(),
+                        dest.id,
+                        source.payee.id,
+                        split_transaction.notes,
+                        None,
+                        0,
+                        process_payee=False,
+                    )
+                    dest_transaction.amount = -source_transaction.amount
+
+                    # swap the transferred ids
+                    source_transaction.transferred_id = dest_transaction.id
+                    dest_transaction.transferred_id = source_transaction.id
+                    # set payees
+                    source_transaction.payee_id = dest.payee.id
+                    dest_transaction.payee_id = source.payee.id
+
+                    actual.session.add(dest_transaction)
+
+                created_splits.append(split_transaction)
 
             # Mark parent as having splits and clear its category
             parent.is_parent = 1
-            parent.category_id = None
 
             actual.commit()
 
